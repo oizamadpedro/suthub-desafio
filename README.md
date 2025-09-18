@@ -1,77 +1,306 @@
-# fastapi_aws_sam
+# FastAPI AWS SAM
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders. 
+Esta aplicação serverless foi desenvolvida usando FastAPI e AWS SAM (Serverless Application Model), incluindo integração com SQS e DynamoDB.
 
-[Refer this aticle for explanation](https://vinaykachare.medium.com/serverless-api-with-aws-sam-fastapi-3f4d9510d6b6)
+[Artigo de referência para explicação](https://vinaykachare.medium.com/serverless-api-with-aws-sam-fastapi-3f4d9510d6b6)
 
-- src - Code for the application's Lambda function.
-- template.yaml - A template that defines the application's AWS resources.
+## 📁 Estrutura do Projeto
 
+```
+fastapi-aws-sam/
+├── src/                    # Código da aplicação Lambda
+├── tests/                  # Testes automatizados
+├── processor/              # Processamento de filas
+├── template.yaml           # Template SAM com recursos AWS
+├── samconfig.toml         # Configurações do SAM
+├── docker-compose.yml     # Para desenvolvimento local
+├── pyproject.toml         # Configurações do pytest
+├── requirements.txt       # Dependências de produção
+├── requirements-dev.txt   # Dependências de desenvolvimento
+└── run_tests.bat         # Script para executar testes
+```
 
+## 🚀 Configuração Inicial
 
-## Deploy the sample application
+### Pré-requisitos
+- Python 3.8+
+- AWS CLI configurado
+- SAM CLI instalado
+- Docker instalado (opcional, para desenvolvimento local)
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+### Instalação de Dependências
 
+```powershell
+# Dependências de produção
+pip install -r requirements.txt
 
-To build and deploy your application for the first time, run the following in your shell:
+# Dependências de desenvolvimento e teste
+pip install -r requirements-dev.txt
+```
 
-```bash
+## 🔨 Comandos de Build
+
+### Build com SAM CLI (Recomendado)
+
+```powershell
+# Build usando container Docker (mais confiável)
 sam build --use-container
+
+# Build local (mais rápido, mas pode ter diferenças de ambiente)
+sam build
+```
+
+### Build com Docker
+
+```powershell
+# Build da imagem Docker
+docker build -t fastapi-aws-sam .
+
+# Build com Docker Compose
+docker-compose build
+```
+
+## 🚀 Comandos de Deploy
+
+### Deploy Inicial (Primeira vez)
+
+```powershell
+# Deploy guiado (irá solicitar configurações)
 sam deploy --guided
+
+# Deploy com parâmetros específicos
+sam deploy --guided --config-env qa
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
+### Deploy para Ambiente QA
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+```powershell
+# Deploy para QA usando configuração do samconfig.toml
+sam deploy --config-env qa
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
+# Deploy para QA com stack personalizado
+sam deploy --config-env qa --stack-name minha-api-qa
+```
 
-## Use the SAM CLI to build and test locally
+### Deploy para Produção
 
-Build your application with the `sam build --use-container` command.
+```powershell
+# Deploy para produção
+sam deploy --config-env prod --stack-name fastapi-prod
 
-```bash
+# Deploy com confirmação de changeset
+sam deploy --config-env prod --confirm-changeset
+```
+
+### Deploy Rápido (Após configuração inicial)
+
+```powershell
+# Deploy usando configurações salvas
+sam deploy
+
+# Deploy com override de ambiente
+sam deploy --config-env prod
+```
+
+## 🧪 Comandos de Teste
+
+### Executar Todos os Testes
+
+```powershell
+# Usando o script batch (Windows)
+.\run_tests.bat
+
+# Usando pytest diretamente
+pytest tests/ -v
+
+# Testes com relatório detalhado
+pytest tests/ -v --tb=long
+```
+
+### Testes Específicos
+
+```powershell
+# Executar apenas testes unitários
+pytest tests/ -m "unit" -v
+
+# Executar apenas testes de integração
+pytest tests/ -m "integration" -v
+
+# Executar teste específico
+pytest tests/test_auth.py -v
+
+# Executar teste específico por nome
+pytest tests/test_auth.py::test_valid_token -v
+```
+
+### Testes com Coverage
+
+```powershell
+# Instalar coverage
+pip install coverage
+
+# Executar testes com coverage
+coverage run -m pytest tests/
+coverage report
+coverage html  # Gera relatório HTML
+```
+
+### Testes Avançados
+
+```powershell
+# Testes em paralelo (instalar pytest-xdist)
+pip install pytest-xdist
+pytest tests/ -n auto
+
+# Testes com output em tempo real
+pytest tests/ -v -s
+
+# Parar no primeiro erro
+pytest tests/ -x
+```
+
+## 💻 Desenvolvimento Local
+
+### Executar API Localmente com SAM
+
+```powershell
+# Build primeiro
 sam build --use-container
-```
 
-The SAM CLI installs dependencies defined in `requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
-
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
-
-```bash
+# Iniciar API localmente na porta 3000
 sam local start-api
+
+# API com porta customizada
+sam local start-api --port 8080
+
+# API com variáveis de ambiente personalizadas
+sam local start-api --env-vars dev.env
 ```
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+### Executar com Docker Compose
 
-## Fetch, tail, and filter Lambda function logs
+```powershell
+# Iniciar aplicação
+docker-compose up
 
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
+# Iniciar em background
+docker-compose up -d
 
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
+# Rebuild e iniciar
+docker-compose up --build
 
-```bash
+# Parar aplicação
+docker-compose down
+```
+
+### Executar FastAPI Diretamente
+
+```powershell
+# Desenvolvimento com reload automático
+uvicorn src.main:app --reload --port 8000
+
+# Com variáveis de ambiente
+uvicorn src.main:app --reload --env-file dev.env
+```
+
+## 📊 Monitoramento e Logs
+
+### Visualizar Logs da Lambda
+
+```powershell
+# Logs em tempo real
 sam logs -n ApiLambdaFunction --stack-name fastapi-hello-world -t
+
+# Logs das últimas 10 linhas
+sam logs -n ApiLambdaFunction --stack-name fastapi-hello-world --tail
+
+# Logs com filtro
+sam logs -n ApiLambdaFunction --stack-name fastapi-hello-world --filter "ERROR"
 ```
 
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
+### Invocar Função Lambda Localmente
 
-## Cleanup
+```powershell
+# Invocar função com evento personalizado
+sam local invoke ApiLambdaFunction --event events/event.json
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+# Invocar com debug
+sam local invoke ApiLambdaFunction --event events/event.json --debug
+```
 
-```bash
+## 🔧 Comandos Úteis de Manutenção
+
+### Limpeza
+
+```powershell
+# Limpar build artifacts
+Remove-Item -Recurse -Force .aws-sam
+
+# Limpar cache do pip
+pip cache purge
+
+# Limpar containers Docker
+docker-compose down --volumes --remove-orphans
+```
+
+### Validação
+
+```powershell
+# Validar template SAM
+sam validate
+
+# Validar template com verbosidade
+sam validate --debug
+```
+
+### Listagem de Recursos
+
+```powershell
+# Listar stacks CloudFormation
+aws cloudformation list-stacks --query "StackSummaries[?StackStatus!='DELETE_COMPLETE'].{Name:StackName,Status:StackStatus}"
+
+# Listar recursos do stack
+aws cloudformation list-stack-resources --stack-name fastapi-hello-world
+```
+
+## 🗑️ Cleanup (Deletar Recursos)
+
+```powershell
+# Deletar stack completo
+sam delete --stack-name fastapi-hello-world
+
+# Deletar usando AWS CLI
 aws cloudformation delete-stack --stack-name fastapi-hello-world
+
+# Confirmar deleção
+aws cloudformation wait stack-delete-complete --stack-name fastapi-hello-world
 ```
 
-## Resources
+## 📚 Recursos Adicionais
 
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
+- [AWS SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
+- [SAM CLI Reference](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
 
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+## 🐛 Troubleshooting
+
+### Problemas Comuns
+
+1. **Erro de permissões IAM**: Certifique-se de ter as permissões necessárias e use `--capabilities CAPABILITY_IAM`
+2. **Timeout na Lambda**: Aumente o timeout no `template.yaml`
+3. **Dependências não encontradas**: Use `sam build --use-container` para build em ambiente isolado
+4. **Erro de sintaxe no template**: Use `sam validate` para verificar o template
+
+### Debug
+
+```powershell
+# Build com debug
+sam build --debug
+
+# Deploy com debug
+sam deploy --debug
+
+# Logs detalhados
+sam logs -n ApiLambdaFunction --stack-name fastapi-hello-world --start-time '10 min ago' --debug
+```
