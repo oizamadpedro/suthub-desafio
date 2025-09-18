@@ -1,8 +1,7 @@
 # FastAPI AWS SAM
 
 Esta aplicação serverless foi desenvolvida usando FastAPI e AWS SAM (Serverless Application Model), incluindo integração com SQS e DynamoDB.
-
-[Artigo de referência para explicação](https://vinaykachare.medium.com/serverless-api-with-aws-sam-fastapi-3f4d9510d6b6)
+Para começar, utilizei a base do AWS SAM + FastAPI de um artigo do Medium
 
 ## 📁 Estrutura do Projeto
 
