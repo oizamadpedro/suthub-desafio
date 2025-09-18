@@ -1,2 +1,3 @@
 .aws-sam/*
 *.pyc
+CURL_EXAMPLES.md

@@ -1,0 +1,10 @@
+# Static Authentication File
+# Format: username:password (plaintext for simplicity - in production use hashed passwords)
+
+# Configuration Users (can manage age groups)
+config_admin:admin123
+config_user:user456
+
+# Final Users (can enroll)
+final_user1:password1
+final_user2:password2

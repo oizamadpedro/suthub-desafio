@@ -1,52 +1,103 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-    FastAPI with aws sam
-
+    FastAPI with AWS SAM + SQS + DynamoDB
 
 Parameters:
-    ENV:
-        Type: String
-        Default: dev
-        Description: Environment name
-    
+  ENV:
+    Type: String
+    Default: dev
+    Description: Environment name
 
 Resources:
-    HelloWorldApiGateway:
-        Type: AWS::Serverless::Api
-        Properties:
-            StageName:
-                Fn::Sub: "${ENV}"
-            Description: Fast API Hello World example
-            Name:
-                Fn::Sub: "helloworldapi-${ENV}"
-    
-    ApiLambdaFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            CodeUri: ./
-            Handler: src.main.handler
-            Runtime: python3.8
-            Timeout: 30
-            MemorySize: 128
-            FunctionName:
-                Fn::Sub: "fastapi-function-${ENV}"
-            Environment:
-                Variables:
-                    ENV:
-                        Ref: ENV
-            Events:
-                ApiEvent:
-                    Type: Api
-                    Properties:
-                        RestApiId:
-                            Ref: HelloWorldApiGateway
-                        Path: /{proxy+}
-                        Method: ANY
-            
+  # API Gateway
+  HelloWorldApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Sub "${ENV}"
+      Description: Fast API Hello World example
+      Name: !Sub "helloworldapi-${ENV}"
+
+  # Lambda que roda o FastAPI
+  ApiLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src.main.handler
+      Runtime: python3.8
+      Timeout: 30
+      MemorySize: 128
+      FunctionName: !Sub "fastapi-function-${ENV}"
+      Environment:
+        Variables:
+          ENV: !Ref ENV
+          QUEUE_URL: !Ref EnrollmentQueue
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt EnrollmentQueue.QueueName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref HelloWorldApiGateway
+            Path: /{proxy+}
+            Method: ANY
+
+  # Definição da fila SQS
+  EnrollmentQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "enrollment-queue-${ENV}"
+      VisibilityTimeout: 60
+
+  # DynamoDB para salvar enrollments
+  EnrollmentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "enrollments-${ENV}"
+      AttributeDefinitions:
+        - AttributeName: cpf
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cpf
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda consumidor da fila
+  EnrollmentProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./processor
+      Handler: processor.handler
+      Runtime: python3.8
+      Timeout: 30
+      MemorySize: 128
+      FunctionName: !Sub "enrollment-processor-${ENV}"
+      Environment:
+        Variables:
+          ENV: !Ref ENV
+          TABLE_NAME: !Ref EnrollmentTable
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !GetAtt EnrollmentQueue.QueueName
+        - DynamoDBWritePolicy:
+            TableName: !Ref EnrollmentTable
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EnrollmentQueue.Arn
+            BatchSize: 10
+
 Outputs:
-  # Find out more about other implicit resources you can reference within SAM
   HelloWorldApi:
     Description: "API Gateway endpoint URL for ${ENV} stage for Hello World function"
-    Value: 
-        Fn::Sub: "https://${HelloWorldApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ENV}/"
+    Value: !Sub "https://${HelloWorldApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ENV}/"
+
+  QueueUrl:
+    Description: "URL da fila de enrollment"
+    Value: !Ref EnrollmentQueue
+
+  DynamoTable:
+    Description: "Tabela DynamoDB de enrollments"
+    Value: !Ref EnrollmentTable
